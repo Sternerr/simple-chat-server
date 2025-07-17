@@ -21,7 +21,7 @@ func (s *Server) Listen() {
 			log.Fatal("Error: ", err.Error())
 		}
 		
-
+		s.users = append(s.users, conn)
 		go s.handleConnection(conn)
 	}
 }
@@ -30,7 +30,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	
 	for msg := range s.processBytestream(conn) {
-		conn.Write([]byte(msg))
+		s.sendMessage(msg, conn)
 	}
 }
 
@@ -39,23 +39,23 @@ func (s *Server) processBytestream(conn net.Conn) <-chan string {
 	
 	go func() {
 		defer close(out)
-		str := ""
 
-		buffer := make([]byte, 8)
+		str := ""
 		for {
+			buffer := make([]byte, 8)
 			n, err := conn.Read(buffer)
 			if err != nil {
 				break
 			}
-
+			
 			buffer = buffer[:n]
 			if i := bytes.IndexByte(buffer, '\n'); i != -1 {
 				str += string(buffer)
-				out <-str
-				buffer = buffer[i+1:]
+				out <- str
+				buffer = buffer[i + 1:]
 				str = ""
 			}
-
+			
 			str += string(buffer)
 		}
 		
@@ -65,6 +65,14 @@ func (s *Server) processBytestream(conn net.Conn) <-chan string {
 	}()
 
 	return out
+}
+
+func (s *Server) sendMessage(msg string, exclude net.Conn) {
+	for _, u := range s.users {
+		if u != exclude {
+			u.Write([]byte(msg))
+		}
+	}
 }
 
 func NewServer(host, port string) (Server, error) {
