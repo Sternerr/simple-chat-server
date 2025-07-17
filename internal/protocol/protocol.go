@@ -4,7 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
+
+	. "github.com/sternerr/termtalk/pkg/models"
 )
+
+func EncodeHandshake(user User) string {
+	const prefix string = "Handshake\r\n\r\n"
+	handshake := prefix + user.Username
+	return handshake
+}
 
 func DecodeHandshake(msg []byte) (string, error) {
 	header, content, ok := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
