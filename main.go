@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/sternerr/termtalk/internal/server"
+	"github.com/sternerr/termtalk/internal/client"
 )
 
 func main() {
@@ -19,6 +20,11 @@ func main() {
 		break
 	
 	case "client":
+		cl := client.NewClient()	
+		err := cl.Connect()
+		if err != nil {
+			log.Fatal("Error: ", err.Error())	
+		}
 
 	default:
 		log.Fatalf("unkonw command: %s", cmd)
