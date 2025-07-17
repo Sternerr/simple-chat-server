@@ -11,7 +11,7 @@ func TestEncodeHandshake(t *testing.T) {
 	expected := `{"type":"handshake","from":"username"}` + "\n"
 
 	actual, err := protocol.EncodeMessage(Message{
-		Type: "handshake",
+		Type: MessageTypeHandshake,
 		From: "username",
 	})
 
@@ -28,7 +28,7 @@ func TestDecodeHandshake(t *testing.T) {
 	input := []byte("{\"type\":\"handshake\",\"from\":\"username\"}\n")
 
 	expected := &Message{
-		Type: "handshake",
+		Type: MessageTypeHandshake,
 		From: "username",
 	}
 
@@ -46,7 +46,7 @@ func TestEncodeChat(t *testing.T) {
 	expected := `{"type":"chat","from":"username","message":"Hello World"}` + "\n"
 
 	actual, err := protocol.EncodeMessage(Message{
-		Type: "chat",
+		Type: MessageTypeChat,
 		From: "username",
 		Message: "Hello World",
 	})
@@ -64,7 +64,7 @@ func TestDecodeChat(t *testing.T) {
 	input := []byte("{\"type\":\"chat\",\"from\":\"username\",\"message\":\"Hello World\"}\n")
 
 	expected := Message{
-		Type: "chat",
+		Type: MessageTypeChat,
 		From: "username",
 		Message: "Hello World",
 	}
