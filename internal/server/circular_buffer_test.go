@@ -7,12 +7,7 @@ import (
 )
 
 func TestCircularBufferAdd(t *testing.T) {
-	cb := CircularBuffer{
-		F: 0,
-		R: -1,
-		Size: 3,
-		Buffer: make([]Message, 3),
-	}
+	cb := NewCircularBuffer(3)
 
 	cb.Add(Message{Type: MessageTypeChat, Message: "A"})
 	if cb.Buffer[cb.R].Message != "A" {
@@ -41,12 +36,7 @@ func TestCircularBufferAdd(t *testing.T) {
 }
 
 func testCircularBufferGetAll(t *testing.T) {
-	cb := CircularBuffer{
-		F: 0,
-		R: -1,
-		Size: 3,
-		Buffer: make([]Message, 3),
-	}
+	cb := NewCircularBuffer(3)
 
 	cb.Add(Message{Type: MessageTypeChat, Message: "A"})
 	cb.Add(Message{Type: MessageTypeChat, Message: "B"})

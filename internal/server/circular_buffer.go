@@ -31,3 +31,12 @@ func (cb *CircularBuffer) GetAll() []Message {
 
 	return messages
 }
+
+func NewCircularBuffer(size int) CircularBuffer {
+	return CircularBuffer{
+		F: 0,
+		R: -1,
+		Size: size,
+		Buffer: make([]Message, size),
+	}
+}

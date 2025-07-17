@@ -1,9 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"log"
+
+	"github.com/sternerr/termtalk/internal/server"
 )
 
 func main() {
-	fmt.Println("I will get the job done!")
+	srv, err := server.NewServer("0.0.0.0", "6969")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	srv.Listen()
 }
