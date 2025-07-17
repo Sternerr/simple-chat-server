@@ -3,29 +3,44 @@ package protocol
 import (
 	"bytes"
 	"errors"
-	"fmt"
-
+	"encoding/json"
 
 	. "github.com/sternerr/termtalk/pkg/models"
 )
 
-func EncodeHandshake(user User) string {
-	const prefix string = "Handshake\r\n\r\n"
-	handshake := prefix + user.Username
-	return handshake
+func EncodeMessage(msg Message) ([]byte, error){
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.New("could not encode msg")
+	}
+
+	return data, nil
 }
 
-func DecodeHandshake(msg []byte) (string, error) {
-	header, content, ok := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
-	if !ok {
-		return "", errors.New("did not find delimiter in handshake")
-	}
-
-	trimmedHeader := bytes.TrimSpace(header)
-	if !bytes.Equal(trimmedHeader, []byte("Handshake")) {
-		return "", errors.New("invalid handshake format")
+func DecodeMessage(msg []byte) (Message, error) {
+	msg = bytes.TrimSpace(msg)
+	if len(msg) <= 0 {
+		return Message{}, errors.New("message is empty")		
 	}
 	
-	fmt.Println(content)
-	return string(content), nil
+	var message Message
+	err := json.Unmarshal(msg, &message)
+	if err != nil {
+		return Message{}, errors.New("invalid json")
+	}
+	
+	switch message.Type {
+	case "handshake":
+		if message.From == "" {
+			return Message{}, errors.New("missing 'from' in handshake")
+		}
+	case "chat":
+		if message.From == "" || message.Message == "" {
+			return Message{}, errors.New("missing 'from' or 'message' in chat")
+		}
+	default:
+		return Message{}, errors.New("unkown message type")
+	}
+	
+	return message, nil
 }
