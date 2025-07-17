@@ -37,7 +37,8 @@ func (c *Client) Connect() error {
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
-	
+	c.sendHandshake()
+
 	go func() {
 		reader := bufio.NewReader(os.Stdin)
 		for {
@@ -63,6 +64,18 @@ func (c *Client) handleConnection() {
 		}
 		fmt.Printf("[%s] %s", msg.From, msg.Message)
 	}
+}
+
+func (c *Client) sendHandshake() {
+	msg, err := protocol.EncodeMessage(Message{
+		Type: MessageTypeHandshake,
+		From: c.cfg.username,
+	})
+	if err != nil {
+		log.Fatalf("Error: ", err.Error())
+	}
+
+	c.conn.Write(msg)
 }
 
 func (c *Client) processBytestream(conn net.Conn) <-chan string {

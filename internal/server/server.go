@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"bytes"
+
+	"github.com/sternerr/termtalk/internal/protocol"
+	. "github.com/sternerr/termtalk/pkg/models"
 )
 
 type Server struct {
 	listener net.Listener
-	users []net.Conn
+	users []User
 }
 
 func (s *Server) Listen() {
@@ -21,7 +24,6 @@ func (s *Server) Listen() {
 			log.Fatal("Error: ", err.Error())
 		}
 		
-		s.users = append(s.users, conn)
 		go s.handleConnection(conn)
 	}
 }
@@ -30,7 +32,41 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	
 	for msg := range s.processBytestream(conn) {
-		s.sendMessage(msg, conn)
+		msg, err := protocol.DecodeMessage([]byte(msg))
+		if err != nil {
+			log.Fatal(err.Error())
+			break
+		}
+
+
+		switch msg.Type {
+		case MessageTypeHandshake:
+			user := User{ Conn: conn, Username: msg.From, }
+			s.users = append(s.users, user)
+
+			msg, err := protocol.EncodeMessage(Message{
+				Type: MessageTypeChat,
+				From: "server",
+				Message: fmt.Sprintf("%s Connected\n", user.Username),
+			})
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+
+			s.sendMessage(msg, conn)
+			break
+		case MessageTypeChat:
+			msg, err := protocol.EncodeMessage(msg)
+			if err != nil {
+				break
+			}
+
+			s.sendMessage(msg, conn)
+			break
+		default:
+			fmt.Println("Invalid type")	
+			break
+		}
 	}
 }
 
@@ -67,10 +103,10 @@ func (s *Server) processBytestream(conn net.Conn) <-chan string {
 	return out
 }
 
-func (s *Server) sendMessage(msg string, exclude net.Conn) {
+func (s *Server) sendMessage(msg []byte, exclude net.Conn) {
 	for _, u := range s.users {
-		if u != exclude {
-			u.Write([]byte(msg))
+		if u.Conn != exclude {
+			u.Conn.Write(msg)
 		}
 	}
 }
@@ -83,6 +119,6 @@ func NewServer(host, port string) (Server, error) {
 
 	return Server{
 		listener: listener,
-		users: []net.Conn{},
+		users: []User{},
 	}, nil
 }
