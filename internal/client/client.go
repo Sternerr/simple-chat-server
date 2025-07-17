@@ -6,9 +6,20 @@ import (
 	"bytes"
 	"bufio"
 	"os"
+	"errors"
+	"strings"
+	"log"
+
+	"github.com/sternerr/termtalk/internal/protocol"
+	. "github.com/sternerr/termtalk/pkg/models"
 )
 
+type config struct {
+	username string
+}
+
 type Client struct {
+	cfg config
 	conn net.Conn
 }
 
@@ -35,12 +46,22 @@ func (c *Client) handleConnection() {
 				break
 			}
 			
-			c.conn.Write([]byte(line))
+			msg, err := protocol.EncodeMessage(Message{
+				Type: MessageTypeChat,
+				From: c.cfg.username,
+				Message: string(line),
+			})
+			
+			c.conn.Write(msg)
 		}
 	}()
 	
 	for msg := range c.processBytestream(c.conn) {
-		fmt.Printf(msg)
+		msg, err := protocol.DecodeMessage([]byte(msg))
+		if err != nil {
+			log.Fatal("Error: ", err.Error())
+		}
+		fmt.Printf("[%s] %s", msg.From, msg.Message)
 	}
 }
 
@@ -77,6 +98,22 @@ func (c *Client) processBytestream(conn net.Conn) <-chan string {
 	return out
 }
 
-func NewClient() Client{
-	return Client{}
+func NewClient(username string) Client {
+	return Client{
+		cfg: config{
+			username: username,
+		},
+	}
+}
+
+func AskForUsername() (string, error) {
+	fmt.Printf("Enter your username: ")
+	reader := bufio.NewReader(os.Stdin)
+	username, err := reader.ReadString('\n')
+	if err != nil {
+		return "", errors.New("could not read username from input")
+	}
+
+	username = strings.TrimRight(username, "\r\n")
+	return username, nil
 }

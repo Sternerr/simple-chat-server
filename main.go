@@ -20,8 +20,13 @@ func main() {
 		break
 	
 	case "client":
-		cl := client.NewClient()	
-		err := cl.Connect()
+		username, err := client.AskForUsername()
+		if err != nil {
+			log.Fatal("Error: ", err.Error())	
+		}
+
+		cl := client.NewClient(username)	
+		err = cl.Connect()
 		if err != nil {
 			log.Fatal("Error: ", err.Error())	
 		}
