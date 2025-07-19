@@ -12,10 +12,14 @@ import (
 type Server struct {
 	listener net.Listener
 	logger *log.Logger
+	users map[net.Conn]User
 }
 
 func NewServer(logger *log.Logger) Server {
-	return Server{logger: logger}
+	return Server{
+		logger: logger,
+		users: make(map[net.Conn]User),
+	}
 }
 
 func(s *Server) Listen() {
@@ -42,7 +46,10 @@ func(s *Server) accept() {
 }
 
 func(s *Server) handleConnection(clientConn net.Conn) {
-	defer clientConn.Close()
+	defer func() {
+		clientConn.Close()
+		delete(s.users, clientConn)
+	}()
 
 	for req := range (*s).processByteStream(clientConn) {
 		msg, err := protocol.DecodeMessage([]byte(req))
@@ -56,13 +63,20 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 			(*(*s).logger).Printf("recieved handshake from: %s", clientConn)
 			if protocol.IsValidHandshake(msg) {
 				(*s).acceptHandshake(clientConn)
+				(*s).users[clientConn] = User{Username: msg.From}
 				break
 			} else {
-				(*s).denyHandshake("unknown 'type' or 'from' in handshake", clientConn)
+				(*s).denyHandshake("unknown 'from' in handshake", clientConn)
 				return
 			}
 			
 		case MessageTypeText:
+			_, exists := (*s).users[clientConn]
+			if !exists {
+				(*s).denyHandshake("No handshake established", clientConn)
+				return
+			}
+
 			(*(*s).logger).Printf("recieved text from: %s", clientConn)
 			clientConn.Write([]byte(req))
 		default:

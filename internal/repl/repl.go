@@ -47,7 +47,22 @@ func(r *Repl) Dial() {
 	}(serverConn)
 
 	for res := range (*r).processByteStream(serverConn) {
-		fmt.Print(res)
+		msg, err := protocol.DecodeMessage([]byte(res))
+		if err != nil {
+			(*(*r).logger).Println(err.Error())
+		}
+
+		switch msg.Type {
+		case MessageTypeHandshakeDeny:
+			fmt.Print(res)
+			break
+		case MessageTypeHandshakeAccept:
+			fmt.Print(res)
+			continue
+		case MessageTypeText:
+			fmt.Print(res)
+			break
+		}
 	}
 
 }
