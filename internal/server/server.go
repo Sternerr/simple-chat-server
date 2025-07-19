@@ -4,6 +4,7 @@ import (
 	"net"
 	"bytes"
 	"log"
+	"fmt"
 
 	"github.com/sternerr/termtalk/internal/protocol"
 	. "github.com/sternerr/termtalk/pkg/models"
@@ -13,12 +14,14 @@ type Server struct {
 	listener net.Listener
 	logger *log.Logger
 	users map[net.Conn]User
+	history CircularBuffer
 }
 
 func NewServer(logger *log.Logger) Server {
 	return Server{
 		logger: logger,
 		users: make(map[net.Conn]User),
+		history: NewCircularBuffer(50),
 	}
 }
 
@@ -55,7 +58,7 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 		msg, err := protocol.DecodeMessage([]byte(req))
 		if err != nil {
 			(*(*s).logger).Printf("%s: %s", err.Error(), req)
-			return
+			continue
 		}
 
 		switch msg.Type {
@@ -63,8 +66,11 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 			(*(*s).logger).Printf("recieved handshake from: %s", clientConn)
 			if protocol.IsValidHandshake(msg) {
 				(*s).acceptHandshake(clientConn)
-				(*s).users[clientConn] = User{Username: msg.From}
-				break
+				(*s).users[clientConn] = User{Username: msg.From, Conn: clientConn}
+				
+				(*s).sendBroadcast(fmt.Sprintf("%s connected", msg.From))
+				(*s).sendHistory(clientConn)
+				defer (*s).sendBroadcast(fmt.Sprintf("%s disconnected", msg.From))
 			} else {
 				(*s).denyHandshake("unknown 'from' in handshake", clientConn)
 				return
@@ -77,7 +83,8 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 				return
 			}
 
-			(*(*s).logger).Printf("recieved text from: %s", clientConn)
+			(*(*s).logger).Printf("recieved text from: %s", msg)
+			(*s).history.Add(msg)
 			(*s).sendMessage([]byte(req), clientConn)
 		default:
 			return
@@ -112,11 +119,39 @@ func(s *Server) denyHandshake(msg string, clientConn net.Conn) {
 	clientConn.Write(append(res, '\n'))
 }
 
-func(s *Server) sendMessage(msg []byte, exclude net.Conn) {
-	for c, _ := range (*s).users {
-		if c != exclude {
-			c.Write(msg)
+func(s *Server) sendHistory(clientConn net.Conn) {
+	for _, msg := range (*s).history.GetAll() {
+		res, err := protocol.EncodeMessage(msg)
+		if err != nil {
+			(*(*s).logger).Println(err.Error())
+			continue
 		}
+
+		clientConn.Write(append(res, '\n'))
+	}
+}
+
+func(s *Server) sendMessage(msg []byte, exclude net.Conn) {
+	for _, u := range (*s).users {
+		if u.Conn != exclude {
+			u.Conn.Write(append(msg, '\n'))
+		}
+	}
+}
+
+func(s *Server) sendBroadcast(msg string) {
+	(*(*s).logger).Printf("broadcast: %s", msg)
+	res, err := protocol.EncodeMessage(Message{
+		Type: MessageTypeText,
+		From: "server",
+		Message: msg + "\n",
+	})
+	if err != nil {
+		(*(*s).logger).Println(err.Error())
+	}
+
+	for c, _ := range (*s).users {
+		c.Write(append(res, '\n'))
 	}
 }
 
@@ -135,7 +170,7 @@ func(s *Server) processByteStream(clientConn net.Conn) <-chan string {
 
 			buffer = buffer[:n]
 			if i := bytes.IndexByte(buffer, '\n'); i != -1 {
-				str += string(buffer)
+				str += string(buffer[:i])
 				out <- str
 				buffer = buffer[i + 1:]
 				str = ""

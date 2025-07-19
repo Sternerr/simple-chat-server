@@ -55,16 +55,12 @@ func(r *Repl) Dial() {
 		switch msg.Type {
 		case MessageTypeHandshakeDeny:
 			fmt.Println(protocol.FormatMessage(msg))
-			break
 		case MessageTypeHandshakeAccept:
-			fmt.Println("connected to server")
 			continue
 		case MessageTypeText:
 			fmt.Print(protocol.FormatMessage(msg))
-			break
 		}
 	}
-
 }
 
 func (r *Repl) sendHandshake(serverConn net.Conn) {
@@ -95,9 +91,10 @@ func(r *Repl) processByteStream(serverConn net.Conn) <-chan string {
 
 			buffer = buffer[:n]
 			if i := bytes.IndexByte(buffer, '\n'); i != -1 {
-				str += string(buffer)
+				str += string(buffer[:i])
 				out <- str
-				buffer = buffer[i + 1:]
+
+				buffer = buffer[i+1:]
 				str = ""
 			}
 
