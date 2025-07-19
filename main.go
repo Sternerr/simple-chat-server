@@ -6,14 +6,11 @@ import (
 	"fmt"
 
 	. "github.com/sternerr/termtalk/internal/server"
+	. "github.com/sternerr/termtalk/internal/repl"
 )
 
 func main() {
-	logger := getLogger("/tmp/termtalk_log.txt")
-	(*logger).Println("I will get the job done!")
-
 	if len(os.Args) <= 1 {
-		(*logger).Println("no cli command provided")
 		fmt.Println("please provide a cli command")
 		os.Exit(0)
 	}
@@ -22,13 +19,17 @@ func main() {
 	cmd := os.Args[1]
 	switch cmd {
 	case "server":
+		logger := getLogger("/tmp/termtalk_server.txt")
 		(*logger).Println("started server")
+
 		server := NewServer(logger)
 		server.Listen()
 	case "client":
+		logger := getLogger("/tmp/termtalk_client.txt")
 		(*logger).Println("started client")
+		repl := NewRepl(logger)
+		repl.Dial()
 	default:
-		(*logger).Println("invalid command")
 		fmt.Println("invalid command")
 		os.Exit(0)
 	}

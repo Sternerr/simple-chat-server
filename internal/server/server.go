@@ -17,7 +17,11 @@ func NewServer(logger *log.Logger) Server {
 
 func(s *Server) Listen() {
 	listener, err := net.Listen("tcp", ":6969")
-	if err != nil {}
+	if err != nil {
+		(*(*s).logger).Printf("could not start listener: %s\n", err.Error())
+		panic(err)
+	}
+	(*(*s).logger).Println("Listening on 0.0.0.0:6969")
 	(*s).listener = listener
 	
 	(*s).accept()
@@ -26,7 +30,9 @@ func(s *Server) Listen() {
 func(s *Server) accept() {
 	for {
 		clientConn, err := (*s).listener.Accept()
-		if err != nil {}
+		if err != nil {
+			(*(*s).logger).Printf("client connection rejected: %s\n", err.Error())
+		}
 		(*(*s).logger).Printf("client connected: %s\n", clientConn)
 
 		go func(c net.Conn) {
