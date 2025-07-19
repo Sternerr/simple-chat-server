@@ -78,7 +78,7 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 			}
 
 			(*(*s).logger).Printf("recieved text from: %s", clientConn)
-			clientConn.Write([]byte(req))
+			(*s).sendMessage([]byte(req), clientConn)
 		default:
 			return
 		}
@@ -110,6 +110,14 @@ func(s *Server) denyHandshake(msg string, clientConn net.Conn) {
 	}
 
 	clientConn.Write(append(res, '\n'))
+}
+
+func(s *Server) sendMessage(msg []byte, exclude net.Conn) {
+	for c, _ := range (*s).users {
+		if c != exclude {
+			c.Write(msg)
+		}
+	}
 }
 
 func(s *Server) processByteStream(clientConn net.Conn) <-chan string {
