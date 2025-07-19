@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"fmt"
 	"bytes"
 	"errors"
 	"encoding/json"
@@ -11,7 +12,7 @@ import (
 func EncodeMessage(msg Message) ([]byte, error){
 	data, err := json.Marshal(msg)
 	if err != nil {
-		return nil, errors.New("could not encode msg")
+		return nil, fmt.Errorf("could not encode msg: %s", err.Error())
 	}
 
 	return data, nil
