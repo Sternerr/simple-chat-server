@@ -78,6 +78,16 @@ func TestDecodeChat(t *testing.T) {
 		t.Fatalf("Decoded message doesn't match.\nExpected: %+v\nActual: %+v", expected, actual)
 	}
 }
+
+func TestFormatMessage(t *testing.T) {
+	expected := "[server] Hej"
+	actual := protocol.FormatMessage(Message{Type: "Text", From: "server", Message: "Hej"})
+
+	if expected != actual {
+		t.Fatalf("Expected %s, Actual %s", expected, actual)
+	}
+}
+
 func TestIsValidHandshake(t *testing.T) {
 	tests := []struct {
 		name     string

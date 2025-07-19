@@ -46,3 +46,7 @@ func IsValidHandshake(msg Message) bool {
 
 	return true
 }
+
+func FormatMessage(msg Message) string {
+	return fmt.Sprintf("[%s] %s", msg.From, msg.Message)
+}

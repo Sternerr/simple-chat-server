@@ -54,13 +54,13 @@ func(r *Repl) Dial() {
 
 		switch msg.Type {
 		case MessageTypeHandshakeDeny:
-			fmt.Print(res)
+			fmt.Println(protocol.FormatMessage(msg))
 			break
 		case MessageTypeHandshakeAccept:
-			fmt.Print(res)
+			fmt.Println("connected to server")
 			continue
 		case MessageTypeText:
-			fmt.Print(res)
+			fmt.Print(protocol.FormatMessage(msg))
 			break
 		}
 	}
