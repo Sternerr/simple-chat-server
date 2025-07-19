@@ -3,6 +3,7 @@ package protocol
 import (
 	"fmt"
 	"bytes"
+	"strings"
 	"errors"
 	"encoding/json"
 
@@ -44,4 +45,17 @@ func DecodeMessage(msg []byte) (Message, error) {
 	}
 	
 	return message, nil
+}
+
+func IsValidHandshake(msg Message) bool {
+	from := strings.TrimSpace(msg.From)
+	if msg.Type == "" || from == "" {
+		return false
+	}
+	
+	if msg.Type != "handshake" {
+		return false
+	}
+
+	return true
 }

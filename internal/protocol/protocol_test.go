@@ -78,3 +78,55 @@ func TestDecodeChat(t *testing.T) {
 		t.Fatalf("Decoded message doesn't match.\nExpected: %+v\nActual: %+v", expected, actual)
 	}
 }
+func TestIsValidHandshake(t *testing.T) {
+	tests := []struct {
+		name     string
+		msg      Message
+		expected bool
+	}{
+		{
+			name:     "Valid message with non-empty Type and From",
+			msg:      Message{Type: "handshake", From: "client1"},
+			expected: true,
+		},
+		{
+			name:     "Empty Type",
+			msg:      Message{Type: "", From: "client"},
+			expected: false,
+		},
+		{
+			name:     "Empty From",
+			msg:      Message{Type: "handshake", From: ""},
+			expected: false,
+		},
+		{
+			name:     "Both Type and From empty",
+			msg:      Message{Type: "", From: ""},
+			expected: false,
+		},
+		{
+			name:     "Whitespace Type",
+			msg:      Message{Type: "  ", From: "client1"},
+			expected: false,
+		},
+		{
+			name:     "Whitespace From",
+			msg:      Message{Type: "handshake", From: "  "},
+			expected: false,
+		},
+		{
+			name:     "Special characters in Type and From",
+			msg:      Message{Type: "@#$%", From: "!@#"},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := protocol.IsValidHandshake(tt.msg)
+			if got != tt.expected {
+				t.Errorf("IsValidHandshake(%v) = %v; want %v", tt.msg, got, tt.expected)
+			}
+		})
+	}
+}

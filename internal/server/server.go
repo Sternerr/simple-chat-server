@@ -49,25 +49,44 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 		msg, err := protocol.DecodeMessage([]byte(req))
 		if err != nil {
 			(*(*s).logger).Println(err.Error())
-			(*s).denyHandshake(clientConn)
-			break
+			(*s).denyHandshake("invalid handshake format", clientConn)
+			return
 		}
 
 		switch msg.Type {
 		case MessageTypeHandshake:
-			break
+			if protocol.IsValidHandshake(msg) {
+				(*s).acceptHandshake(clientConn)
+			} else {
+				(*s).denyHandshake("unknown 'type' or 'from' in handshake", clientConn)
+				return
+			}
 		default:
-			(*s).denyHandshake(clientConn)
-			break
+			(*s).denyHandshake("invalid message type", clientConn)
+			return
 		}
 	}
 }
 
-func(s *Server) denyHandshake(clientConn net.Conn) {
-	(*(*s).logger).Println("denied handshake: %s", clientConn)
+func(s *Server) acceptHandshake(clientConn net.Conn) {
+	(*(*s).logger).Printf("accepted handshake from: %s\n", clientConn)
 	res, err := protocol.EncodeMessage(Message{
 		Type: MessageTypeHandshakeDeny,
 		From: "server",
+	})
+	if err != nil {
+		(*(*s).logger).Println(err.Error())
+	}
+
+	clientConn.Write(res)
+}
+
+func(s *Server) denyHandshake(msg string, clientConn net.Conn) {
+	(*(*s).logger).Printf("denied handshake from: %s\n", clientConn)
+	res, err := protocol.EncodeMessage(Message{
+		Type: MessageTypeHandshakeDeny,
+		From: "server",
+		Message: msg,
 	})
 	if err != nil {
 		(*(*s).logger).Println(err.Error())
