@@ -4,6 +4,8 @@ import (
 	"os"
 	"log"
 	"fmt"
+
+	. "github.com/sternerr/termtalk/internal/server"
 )
 
 func main() {
@@ -21,6 +23,8 @@ func main() {
 	switch cmd {
 	case "server":
 		(*logger).Println("started server")
+		server := NewServer(logger)
+		server.Listen()
 	case "client":
 		(*logger).Println("started client")
 	default:
