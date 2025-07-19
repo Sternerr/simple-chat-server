@@ -36,8 +36,7 @@ func(s *Server) accept() {
 		if err != nil {
 			(*(*s).logger).Printf("client connection rejected: %s\n", err.Error())
 		}
-		(*(*s).logger).Printf("client connected: %s\n", clientConn)
-	
+
 		go (*s).handleConnection(clientConn)
 	}
 }
@@ -48,21 +47,25 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 	for req := range (*s).processByteStream(clientConn) {
 		msg, err := protocol.DecodeMessage([]byte(req))
 		if err != nil {
-			(*(*s).logger).Println(err.Error())
-			(*s).denyHandshake("invalid handshake format", clientConn)
+			(*(*s).logger).Printf("%s: %s", err.Error(), req)
 			return
 		}
 
 		switch msg.Type {
 		case MessageTypeHandshake:
+			(*(*s).logger).Printf("recieved handshake from: %s", clientConn)
 			if protocol.IsValidHandshake(msg) {
 				(*s).acceptHandshake(clientConn)
+				break
 			} else {
 				(*s).denyHandshake("unknown 'type' or 'from' in handshake", clientConn)
 				return
 			}
+			
+		case MessageTypeText:
+			(*(*s).logger).Printf("recieved text from: %s", clientConn)
+			clientConn.Write([]byte(req))
 		default:
-			(*s).denyHandshake("invalid message type", clientConn)
 			return
 		}
 	}
@@ -71,14 +74,14 @@ func(s *Server) handleConnection(clientConn net.Conn) {
 func(s *Server) acceptHandshake(clientConn net.Conn) {
 	(*(*s).logger).Printf("accepted handshake from: %s\n", clientConn)
 	res, err := protocol.EncodeMessage(Message{
-		Type: MessageTypeHandshakeDeny,
+		Type: MessageTypeHandshakeAccept,
 		From: "server",
 	})
 	if err != nil {
 		(*(*s).logger).Println(err.Error())
 	}
 
-	clientConn.Write(res)
+	clientConn.Write(append(res, '\n'))
 }
 
 func(s *Server) denyHandshake(msg string, clientConn net.Conn) {
@@ -92,7 +95,7 @@ func(s *Server) denyHandshake(msg string, clientConn net.Conn) {
 		(*(*s).logger).Println(err.Error())
 	}
 
-	clientConn.Write(res)
+	clientConn.Write(append(res, '\n'))
 }
 
 func(s *Server) processByteStream(clientConn net.Conn) <-chan string {

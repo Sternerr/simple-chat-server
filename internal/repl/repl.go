@@ -7,6 +7,9 @@ import (
 	"os"
 	"bytes"
 	"fmt"
+
+	"github.com/sternerr/termtalk/internal/protocol"
+	. "github.com/sternerr/termtalk/pkg/models"
 )
 
 type Repl struct {
@@ -22,8 +25,51 @@ func(r *Repl) Dial() {
 	if err != nil {
 		panic(err)
 	}
+	
+	(*r).sendHandshake(serverConn)
 
 	go func(c net.Conn) {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			line, err := (*reader).ReadString('\n')
+			if err != nil {
+				break
+			}
+
+			req, err := protocol.EncodeMessage(Message{
+				Type: MessageTypeText,
+				From: "A",
+				Message: string(line),
+			})
+
+			c.Write(append([]byte(req), '\n'))
+		}
+	}(serverConn)
+
+	for res := range (*r).processByteStream(serverConn) {
+		fmt.Print(res)
+	}
+
+}
+
+func (r *Repl) sendHandshake(serverConn net.Conn) {
+	req, err := protocol.EncodeMessage(Message{
+		Type: MessageTypeHandshake,
+		From: "A",
+	})
+	if err != nil {
+		(*(*r).logger).Println(err.Error())
+	}
+	
+	serverConn.Write(append(req, '\n'))
+	(*(*r).logger).Println("sent handshake")
+}
+
+func(r *Repl) processByteStream(serverConn net.Conn) <-chan string {
+	out := make(chan string)
+
+	go func(c net.Conn) {
+		defer close(out)
 		str := ""
 		for {
 			buffer := make([]byte, 8)
@@ -35,7 +81,7 @@ func(r *Repl) Dial() {
 			buffer = buffer[:n]
 			if i := bytes.IndexByte(buffer, '\n'); i != -1 {
 				str += string(buffer)
-				fmt.Print(str)
+				out <- str
 				buffer = buffer[i + 1:]
 				str = ""
 			}
@@ -44,19 +90,9 @@ func(r *Repl) Dial() {
 		}
 
 		if len(str) > 0 {
-			fmt.Print(str)
+			out <- str
 		}
-	}(serverConn)	
+	}(serverConn)
 
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			line, err := (*reader).ReadString('\n')
-			if err != nil {
-				break
-			}
-
-			serverConn.Write([]byte(line))
-		}
-	}
+	return out
 }

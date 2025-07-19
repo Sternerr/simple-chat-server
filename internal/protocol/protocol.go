@@ -31,19 +31,6 @@ func DecodeMessage(msg []byte) (Message, error) {
 		return Message{}, errors.New("invalid json")
 	}
 	
-	switch message.Type {
-	case "handshake":
-		if message.From == "" {
-			return Message{}, errors.New("missing 'from' in handshake")
-		}
-	case "chat":
-		if message.From == "" || message.Message == "" {
-			return Message{}, errors.New("missing 'from' or 'message' in chat")
-		}
-	default:
-		return Message{}, errors.New("unkown message type")
-	}
-	
 	return message, nil
 }
 

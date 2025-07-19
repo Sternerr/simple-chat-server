@@ -6,6 +6,8 @@ const (
 	MessageTypeHandshake MessageType = "handshake"
 	MessageTypeHandshakeDeny MessageType = "handshake/deny"
 	MessageTypeHandshakeAccept MessageType = "handshake/accept"
+
+	MessageTypeText MessageType = "text"
 )
 
 type Message struct {
