@@ -5,8 +5,8 @@ import (
 	"log"
 	"fmt"
 
-	. "github.com/sternerr/termtalk/internal/server"
-	. "github.com/sternerr/termtalk/internal/repl"
+	"github.com/sternerr/termtalk/internal/server"
+	"github.com/sternerr/termtalk/internal/repl"
 )
 
 func main() {
@@ -22,13 +22,14 @@ func main() {
 		logger := getLogger("/tmp/termtalk_server.txt")
 		(*logger).Println("started server")
 
-		server := NewServer(logger)
+		server := server.NewServer(logger)
 		server.Listen()
 	case "client":
 		logger := getLogger("/tmp/termtalk_client.txt")
 		(*logger).Println("started client")
-		repl := NewRepl(logger)
-		repl.Dial()
+		client := repl.NewRepl(logger)
+		client = repl.PromptUsername(client, logger)
+		client.Dial()
 	default:
 		fmt.Println("invalid command")
 		os.Exit(0)

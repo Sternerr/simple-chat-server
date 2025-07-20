@@ -12,12 +12,17 @@ import (
 	. "github.com/sternerr/termtalk/pkg/models"
 )
 
+type Config struct {
+	Username string
+}
+
 type Repl struct {
-	logger *log.Logger
+	Cfg Config 
+	Logger *log.Logger
 }
 
 func NewRepl(logger *log.Logger) Repl{
-	return Repl{logger: logger}
+	return Repl{Logger: logger, Cfg: Config{}}
 }
 
 func(r *Repl) Dial() {
@@ -38,7 +43,7 @@ func(r *Repl) Dial() {
 
 			req, err := protocol.EncodeMessage(Message{
 				Type: MessageTypeText,
-				From: "A",
+				From: r.Cfg.Username,
 				Message: string(line),
 			})
 
@@ -49,7 +54,7 @@ func(r *Repl) Dial() {
 	for res := range (*r).processByteStream(serverConn) {
 		msg, err := protocol.DecodeMessage([]byte(res))
 		if err != nil {
-			(*(*r).logger).Println(err.Error())
+			(*(*r).Logger).Println(err.Error())
 		}
 
 		switch msg.Type {
@@ -66,14 +71,14 @@ func(r *Repl) Dial() {
 func (r *Repl) sendHandshake(serverConn net.Conn) {
 	req, err := protocol.EncodeMessage(Message{
 		Type: MessageTypeHandshake,
-		From: "A",
+		From: r.Cfg.Username,
 	})
 	if err != nil {
-		(*(*r).logger).Println(err.Error())
+		(*(*r).Logger).Println(err.Error())
 	}
 	
 	serverConn.Write(append(req, '\n'))
-	(*(*r).logger).Println("sent handshake")
+	(*(*r).Logger).Println("sent handshake")
 }
 
 func(r *Repl) processByteStream(serverConn net.Conn) <-chan string {
