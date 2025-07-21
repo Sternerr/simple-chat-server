@@ -25,8 +25,8 @@ func NewRepl(logger *log.Logger) Repl{
 	return Repl{Logger: logger, Cfg: Config{}}
 }
 
-func(r *Repl) Dial() {
-	serverConn, err := net.Dial("tcp", ":6969")
+func(r *Repl) Dial(host, port string) {
+	serverConn, err := net.Dial("tcp", host + ":" + port)
 	if err != nil {
 		panic(err)
 	}

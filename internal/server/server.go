@@ -25,8 +25,8 @@ func NewServer(logger *log.Logger) Server {
 	}
 }
 
-func(s *Server) Listen() {
-	listener, err := net.Listen("tcp", ":6969")
+func(s *Server) Listen(port string) {
+	listener, err := net.Listen("tcp", ":" + port)
 	if err != nil {
 		(*(*s).logger).Printf("could not start listener: %s\n", err.Error())
 		panic(err)

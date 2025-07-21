@@ -17,13 +17,19 @@ func main() {
 	}
 
 	cmd := os.Args[1]
+
+	port, err := parseFlag("--port", os.Args[2:])	
+	if err != nil {
+		fmt.Println("error: ", err.Error())
+		os.Exit(1)
+	}
 	switch cmd {
 	case "server":
 		logger := getLogger("/tmp/termtalk_server.txt")
 		(*logger).Println("started server")
 
 		server := server.NewServer(logger)
-		server.Listen()
+		server.Listen(port)
 	case "client":
 		logger := getLogger("/tmp/termtalk_client.txt")
 
@@ -32,12 +38,19 @@ func main() {
 			fmt.Println("error: ", err.Error())
 			os.Exit(1)
 		}
+
+		host, err := parseFlag("--host", os.Args[2:])	
+		if err != nil {
+			fmt.Println("error: ", err.Error())
+			os.Exit(1)
+		}
+
 		switch strings.ToLower(mode) {
 		case "repl":
 			(*logger).Printf("starting client with mode %s\n", mode)
 			client := repl.NewRepl(logger)
 			client = repl.PromptUsername(client, logger)
-			client.Dial()
+			client.Dial(host, port)
 		case "tui":
 			(*logger).Printf("tui not implemented yet %s\n", mode)
 		default:
@@ -57,6 +70,7 @@ func parseFlag(flag string, args []string) (string, error) {
 				return strings.ToLower(args[i+1]), nil
 			}
 
+			return "", fmt.Errorf("%s flag requires a value", flag)
 			return "", fmt.Errorf("%s flag requires a value", flag)
 		}
 	}
