@@ -8,6 +8,9 @@ import (
 
 	"github.com/sternerr/termtalk/internal/server"
 	"github.com/sternerr/termtalk/internal/repl"
+	"github.com/sternerr/termtalk/internal/tui"
+	
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -52,7 +55,14 @@ func main() {
 			client = repl.PromptUsername(client, logger)
 			client.Dial(host, port)
 		case "tui":
-			(*logger).Printf("tui not implemented yet %s\n", mode)
+			(*logger).Printf("[info] starting client with mode %s\n", mode)
+			c := tui.NewTUI(logger)
+			p := tea.NewProgram(c, tea.WithAltScreen())
+			if err := p.Start(); err != nil {
+				fmt.Printf("Error starting program: %v\n", err)
+				os.Exit(1)
+			}
+
 		default:
 			(*logger).Printf("client mode %s do not exists\n", mode)
 			fmt.Printf("client mode %s do not exists\n", mode)
