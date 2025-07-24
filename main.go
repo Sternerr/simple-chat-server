@@ -57,6 +57,7 @@ func main() {
 		case "tui":
 			(*logger).Printf("[info] starting client with mode %s\n", mode)
 			c := tui.NewTUI(logger)
+			c.Client.Dial(host, port)
 			p := tea.NewProgram(c, tea.WithAltScreen())
 			if err := p.Start(); err != nil {
 				fmt.Printf("Error starting program: %v\n", err)
