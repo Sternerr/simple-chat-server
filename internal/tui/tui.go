@@ -9,10 +9,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type ModelTypes int
+type ModelType int
 
 const (
-	ChatModelType ModelTypes = iota
+	DisplayNameModelType ModelType = iota
+	ChatModelType
 )
 
 type TUI struct {
@@ -20,7 +21,9 @@ type TUI struct {
 	user User
 	messages []Message
 	logger *log.Logger
-	models map[ModelTypes]tea.Model
+	models map[ModelType]tea.Model
+	activeModel ModelType
+
 }
 
 func NewTUI(logger *log.Logger) TUI {
@@ -29,9 +32,11 @@ func NewTUI(logger *log.Logger) TUI {
 		Client: client.NewClient(logger),
 		user: user,
 		logger: logger,
-		models: map[ModelTypes]tea.Model{
+		models: map[ModelType]tea.Model{
+			DisplayNameModelType: models.NewDisplayNameModel(),
 			ChatModelType: models.NewChatModel(user),
 		},
+		activeModel: DisplayNameModelType,
 	}
 }
 
@@ -60,34 +65,40 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 
 	switch msg := msg.(type) {
 	case client.Connected:
-		t.Client.SendHandshake(t.user)	
-		return t, t.ClientListenerCmd()
+		(*(t).logger).Printf("[info] connected to server: %s\n", msg)
+		return t, nil
 
 	case Message:
 		(*(t).logger).Printf("[info] Message Recieved: %s\n", msg)
 
-		model, cmd = t.models[ChatModelType].Update(msg)
-		t.models[ChatModelType] = model
+		model, cmd = t.models[t.activeModel].Update(msg)
+		t.models[t.activeModel] = model
 		return t, tea.Batch(t.ClientListenerCmd(), cmd)
 
 	case models.SendMessageCmd:
 		(*(t.logger)).Printf("[info] Sending Message: %s\n", msg.Message)
 		t.Client.SendMessage(msg.Message)
 		return t, t.ClientListenerCmd()
+	
+	case models.SendUserCmd:
+		t.user = msg.User
+		t.activeModel = ChatModelType
+		t.Client.SendHandshake(t.user)	
+		return t, tea.Batch(t.ClientListenerCmd(), tea.WindowSize())
 
 	case tea.KeyMsg:
 		switch msg.String() {
 			case "ctrl+c":
 				return t, tea.Quit
 			default:
-				model, cmd = t.models[ChatModelType].Update(msg)
-				t.models[ChatModelType] = model
+				model, cmd = t.models[t.activeModel].Update(msg)
+				t.models[t.activeModel] = model
 			return t, cmd
 		}
 
 	case tea.WindowSizeMsg:
-		model, cmd := t.models[ChatModelType].Update(msg)
-		t.models[ChatModelType] = model
+		model, cmd := t.models[t.activeModel].Update(msg)
+		t.models[t.activeModel] = model
 		return t, cmd
 	}
 
@@ -95,6 +106,6 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 }
 
 func(t TUI) View() string {
-	return t.models[ChatModelType].View()
+	return t.models[t.activeModel].View()
 }
 
