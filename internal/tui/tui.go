@@ -65,11 +65,11 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 
 	switch msg := msg.(type) {
 	case client.Connected:
-		(*(t).logger).Printf("[info] connected to server: %s\n", msg)
+		(*(t).logger).Printf("[info] connected to server: %v\n", msg)
 		return t, nil
 
 	case Message:
-		(*(t).logger).Printf("[info] Message Recieved: %s\n", msg)
+		(*(t).logger).Printf("[info] Message Recieved: %v\n", msg)
 
 		model, cmd = t.models[t.activeModel].Update(msg)
 		t.models[t.activeModel] = model
