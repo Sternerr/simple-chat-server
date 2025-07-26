@@ -59,16 +59,22 @@ func(m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 
 	case tea.KeyMsg:
 		switch msg.String() {
-			case "ctrl+c":
-				return m, tea.Quit
+		case "ctrl+c":
+			return m, tea.Quit
 
-			case "enter":
-				message := Message{Type: "text", From: m.user.Username, Message: m.textarea.Value() + "\n"}
-				m.messages = append(m.messages, message)
-				m.updateViewportContent()
-				m.textarea.Reset()
+		case "up":
+			m.viewport.LineUp(1)
 
-				return m, func() tea.Msg { return SendMessageCmd{Message: message}}
+		case "down":
+			m.viewport.LineDown(1)
+
+		case "enter":
+			message := Message{Type: "text", From: m.user.Username, Message: m.textarea.Value() + "\n"}
+			m.messages = append(m.messages, message)
+			m.updateViewportContent()
+			m.textarea.Reset()
+
+			return m, func() tea.Msg { return SendMessageCmd{Message: message}}
 		}
 
 	case tea.WindowSizeMsg:

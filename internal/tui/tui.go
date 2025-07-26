@@ -88,8 +88,6 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 
 	case tea.KeyMsg:
 		switch msg.String() {
-			case "ctrl+c":
-				return t, tea.Quit
 			default:
 				model, cmd = t.models[t.activeModel].Update(msg)
 				t.models[t.activeModel] = model
