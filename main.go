@@ -49,7 +49,7 @@ func main() {
 		}
 
 		switch strings.ToLower(mode) {
-		case "repl":
+		case "cli":
 			(*logger).Printf("starting client with mode %s\n", mode)
 			client := repl.NewRepl(logger)
 			client = repl.PromptUsername(client, logger)
