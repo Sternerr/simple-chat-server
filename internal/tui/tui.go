@@ -1,12 +1,18 @@
 package tui
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/sternerr/termtalk/internal/client"
 	. "github.com/sternerr/termtalk/pkg/models"
+	"github.com/sternerr/termtalk/internal/tui/models"
 	tea "github.com/charmbracelet/bubbletea"
+)
+
+type ModelTypes int
+
+const (
+	ChatModelType ModelTypes = iota
 )
 
 type TUI struct {
@@ -14,14 +20,17 @@ type TUI struct {
 	user User
 	messages []Message
 	logger *log.Logger
+	models map[ModelTypes]tea.Model
 }
 
 func NewTUI(logger *log.Logger) TUI {
 	return TUI{
 		Client: client.NewClient(logger),
 		user: User{Username: "A"},
-		messages: make([]Message, 0, 50),
 		logger: logger,
+		models: map[ModelTypes]tea.Model{
+			ChatModelType: models.NewChatModel(),
+		},
 	}
 }
 
@@ -54,25 +63,27 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 
 	case Message:
 		(*(t).logger).Printf("[info] Message Recieved: %s\n", msg)
-		t.messages = append(t.messages, msg)
-		return t, t.ClientListenerCmd()
+
+		model, cmd := t.models[ChatModelType].Update(msg)
+		t.models[ChatModelType] = model
+		return t, tea.Batch(t.ClientListenerCmd(), cmd)
 	
 	case tea.KeyMsg:
 		switch msg.String() {
 			case "ctrl+c":
 				return t, tea.Quit
 		}
+
+	case tea.WindowSizeMsg:
+		model, cmd := t.models[ChatModelType].Update(msg)
+		t.models[ChatModelType] = model
+		return t, cmd
 	}
 
 	return t, nil
 }
 
 func(t TUI) View() string {
-	str := ""
-	for _, m := range t.messages {
-		str += fmt.Sprintf("[%s] %s", m.From, m.Message)
-	}
-
-	return str
+	return t.models[ChatModelType].View()
 }
 
