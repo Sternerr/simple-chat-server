@@ -24,12 +24,13 @@ type TUI struct {
 }
 
 func NewTUI(logger *log.Logger) TUI {
+	user := User{Username: "A"}
 	return TUI{
 		Client: client.NewClient(logger),
-		user: User{Username: "A"},
+		user: user,
 		logger: logger,
 		models: map[ModelTypes]tea.Model{
-			ChatModelType: models.NewChatModel(),
+			ChatModelType: models.NewChatModel(user),
 		},
 	}
 }
@@ -45,7 +46,8 @@ func(t TUI) Init() tea.Cmd {
 }
 
 func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
-	(*(t).logger).Println(msg)
+	var cmd tea.Cmd
+	var model tea.Model
 
 	switch msg {
 	case MessageTypeHandshakeDeny:
@@ -64,14 +66,23 @@ func(t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd){
 	case Message:
 		(*(t).logger).Printf("[info] Message Recieved: %s\n", msg)
 
-		model, cmd := t.models[ChatModelType].Update(msg)
+		model, cmd = t.models[ChatModelType].Update(msg)
 		t.models[ChatModelType] = model
 		return t, tea.Batch(t.ClientListenerCmd(), cmd)
-	
+
+	case models.SendMessageCmd:
+		(*(t.logger)).Printf("[info] Sending Message: %s\n", msg.Message)
+		t.Client.SendMessage(msg.Message)
+		return t, t.ClientListenerCmd()
+
 	case tea.KeyMsg:
 		switch msg.String() {
 			case "ctrl+c":
 				return t, tea.Quit
+			default:
+				model, cmd = t.models[ChatModelType].Update(msg)
+				t.models[ChatModelType] = model
+			return t, cmd
 		}
 
 	case tea.WindowSizeMsg:

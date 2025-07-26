@@ -87,6 +87,7 @@ func(c *Client) processByteStream() <-chan string {
 
 	return out
 }
+
 func (c *Client) SendHandshake(user User) {
 	req, err := protocol.EncodeMessage(Message{
 		Type: MessageTypeHandshake,
@@ -97,5 +98,15 @@ func (c *Client) SendHandshake(user User) {
 	}
 	
 	(*(*c).logger).Println("[info] handshake sent")
+	(*c).Conn.Write(append(req, '\n'))
+}
+
+func (c *Client) SendMessage(msg Message) {
+	req, err := protocol.EncodeMessage(msg)
+	if err != nil {
+		(*(*c).logger).Println(err.Error())
+	}
+	
+	(*(*c).logger).Println("[info] message sent")
 	(*c).Conn.Write(append(req, '\n'))
 }
